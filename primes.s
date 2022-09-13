@@ -5,16 +5,46 @@
 
 .text # Read-only part of code
 
-template: .asciz "%ld\n"
+templateNewline: .asciz "%ld\n"
+template: .asciz "%ld"
+enterLower: .asciz "|PRIME NUMBER FINDER|\nEnter lower search bound: "
+enterUpper: .asciz "Enter upper search bound: "
 
 main:
     # Prologue
     pushq %rbp
     movq %rsp, %rbp
 
-    movq $0, %rdi
-    movq $1000000, %rsi
-    call primesBetween
+    movq $enterLower, %rdi # sets first param for printf to welcome message
+    xorq %rax, %rax # sets %rax to 0 for printf
+    call printf
+
+    subq $16, %rsp 
+    #    ^ moves the stack pointer 16 bytes down. You have to do this to get 16 byte alignment, otherwise subroutine calls will segfault.
+    # The free space is used for the two numbers we ask the user for. The nearest 8 bytes are for the lower bound and the furthest for the upper.
+    
+    
+    leaq (%rsp), %rsi # the adress of the stack pointer is now the adress of the upperBound variable
+    movq $template, %rdi # template string as first arg for scanf
+    xorq %rax, %rax # set %rax to 0 for scanf reasons
+    call scanf #scanf(templateString, pointerToStore)
+
+    movq $enterUpper, %rdi # sets first param for printf to welcome message
+    xorq %rax, %rax # sets %rax to 0 for printf
+    call printf
+
+    leaq 8(%rsp), %rsi # the lowerBound variable is 8 bytes higher than the stack pointer
+    movq $template, %rdi # move the template string into the first argument
+    xorq %rax, %rax # sets %rax to 0 for scanf
+    call scanf
+
+    popq %rdi # pop the lower bound into first arg
+    popq %rsi # pop the upper bound into secod arg
+
+    cmpq %rdi, %rsi # if the upperBound is less than or equal to lowerBound, then there are no primes to find
+    jle end
+
+    call primesBetween # primesBetween(lowerBound, upperBound)
 
 end:
     # Epilogue
@@ -73,7 +103,7 @@ primesBetweenPrint:
     pushq %rsi # end
 
     movq %rdi, %rsi # Move the start variable into the second argument register
-    movq $template, %rdi # Move the template string pointer into the first argument register
+    movq $templateNewline, %rdi # Move the template string pointer into the first argument register
     xorq %rax, %rax #XORing a register with itself sets it to zero. Sets %rax to zero so that printf doesn't use the 128bit registers
     call printf
 
